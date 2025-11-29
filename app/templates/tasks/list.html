@@ -1,0 +1,256 @@
+{% extends "layouts/base.html" %} {% block content %}
+<div
+  class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4"
+>
+  <div>
+    <h1 class="text-2xl font-bold text-txtPrimary">My Tasks</h1>
+    <p class="text-txtSecondary text-sm">
+      {% if search_query %} Search results for "<span
+        class="font-bold text-accent"
+        >{{ search_query }}</span
+      >" {% elif current_status_slugs %} Filtered by
+      <span class="font-bold text-accent"
+        >{{ current_status_slugs|length }}</span
+      >
+      statuses {% else %} Showing
+      <span class="font-bold text-accent">All</span> tasks {% endif %}
+    </p>
+  </div>
+
+  <div class="flex items-center gap-3 w-full md:w-auto">
+    <!-- Search Form -->
+    <form action="/tasks" method="GET" class="relative flex-1 md:w-64">
+      <i
+        class="ph-bold ph-magnifying-glass absolute left-3 top-2.5 text-txtSecondary"
+      ></i>
+
+      {% for slug in current_status_slugs %}
+      <input type="hidden" name="status" value="{{ slug }}" />
+      {% endfor %}
+
+      <input
+        type="text"
+        name="search"
+        value="{{ search_query or '' }}"
+        placeholder="Search tasks & logs..."
+        class="w-full bg-bgPrimary border border-borderColor rounded-lg pl-9 pr-4 py-2 text-sm outline-none focus:border-accent shadow-sm transition"
+      />
+    </form>
+
+    <a
+      href="/tasks/new"
+      class="bg-accent text-white px-4 py-2 rounded-lg hover:opacity-90 transition shadow-lg shadow-blue-500/20 flex items-center gap-2 whitespace-nowrap"
+    >
+      <i class="ph-bold ph-plus"></i>
+      <span class="hidden sm:inline">New Task</span>
+    </a>
+  </div>
+</div>
+
+<!-- Status Filters -->
+<div
+  class="flex items-center gap-3 mb-8 overflow-x-auto pb-2 custom-scrollbar flex-wrap"
+>
+  <!-- 'All' Filter -->
+  <button
+    onclick="clearFilters()"
+    class="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition border whitespace-nowrap cursor-pointer {% if not current_status_slugs %} bg-txtPrimary text-bgPrimary border-txtPrimary {% else %} bg-bgPrimary text-txtSecondary border-borderColor hover:border-txtSecondary {% endif %}"
+  >
+    <span>All</span>
+    <span
+      class="px-1.5 py-0.5 rounded-full text-[10px] {% if not current_status_slugs %} bg-bgSecondary text-txtPrimary {% else %} bg-bgSecondary text-txtSecondary {% endif %}"
+    >
+      {{ total_tasks }}
+    </span>
+  </button>
+
+  <!-- Dynamic Status Filters -->
+  {% for status in statuses %} {% set is_active = status.slug in
+  current_status_slugs %}
+
+  <button
+    onclick="toggleStatus('{{ status.slug }}')"
+    class="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition border whitespace-nowrap group cursor-pointer select-none {% if is_active %} bg-accent text-white border-accent shadow-md shadow-blue-500/20 {% else %} bg-bgPrimary text-txtSecondary border-borderColor hover:border-accent hover:text-accent {% endif %}"
+  >
+    <!-- DYNAMIC COLOR DOT -->
+    <span
+      class="w-2 h-2 rounded-full bg-{{ status.color }}-500 {% if is_active %} ring-2 ring-white/50 {% endif %}"
+    ></span>
+
+    <span>{{ status.name }}</span>
+
+    <span
+      class="px-1.5 py-0.5 rounded-full text-[10px] {% if is_active %} bg-white/20 text-white {% else %} bg-bgSecondary text-txtSecondary group-hover:bg-accent/10 group-hover:text-accent {% endif %}"
+    >
+      {{ status.count }}
+    </span>
+  </button>
+  {% endfor %}
+</div>
+
+<!-- Task List Grid -->
+<div class="grid grid-cols-1 gap-4 mb-8">
+  {% for task in tasks %} {% set is_final = task.status.is_final %} {% set
+  days_late = (task.deadline | days_until) %} {% set last_log =
+  task.activities[0] if task.activities else None %}
+
+  <a
+    href="/tasks/{{ task.slug }}"
+    class="block bg-bgPrimary border border-borderColor p-5 rounded-xl hover:shadow-lg transition group relative overflow-hidden flex flex-col h-full"
+  >
+    <!-- Priority Indicator (Left Bar) -->
+    <div
+      class="absolute left-0 top-0 bottom-0 w-1 {% if is_final %} bg-green-500 {% elif days_late is not none and days_late < 0 %} bg-red-500 {% else %} bg-transparent {% endif %}"
+    ></div>
+
+    <div
+      class="flex flex-col md:flex-row md:justify-between md:items-start gap-4 pl-2 mb-3"
+    >
+      <div class="flex-1">
+        <div class="flex items-center gap-3 mb-1">
+          <!-- DYNAMIC STATUS BADGE -->
+          <span
+            class="px-2 py-0.5 rounded text-[10px] font-bold uppercase border 
+                        bg-{{ task.status.color }}-50 text-{{ task.status.color }}-700 border-{{ task.status.color }}-200 
+                        dark:bg-{{ task.status.color }}-900/30 dark:text-{{ task.status.color }}-300 dark:border-{{ task.status.color }}-800"
+          >
+            {{ task.status.name }}
+          </span>
+
+          <h3
+            class="font-bold text-lg text-txtPrimary group-hover:text-accent transition {% if is_final %}line-through text-txtSecondary{% endif %}"
+          >
+            {{ task.title | highlight(search_query) }}
+          </h3>
+        </div>
+
+        <div class="flex items-center gap-4 text-xs text-txtSecondary">
+          <div
+            class="flex items-center gap-1.5 {% if days_late is not none and days_late < 0 and not is_final %} text-red-500 font-bold {% endif %}"
+          >
+            <i class="ph-fill ph-calendar-blank"></i>
+            <span
+              >{% if task.deadline %} Due: {{ task.deadline.strftime('%d %b') }}
+              {% else %} No Deadline {% endif %}</span
+            >
+          </div>
+          <div class="flex items-center gap-1.5">
+            <i class="ph-fill ph-clock"></i> Created {{ task.created_at | local
+            }}
+          </div>
+        </div>
+      </div>
+
+      {% if not is_final %}
+      <div class="flex items-center gap-2 shrink-0">
+        {% if days_late is not none and days_late < 0 %}
+        <div
+          class="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-800 text-xs text-red-600 font-bold animate-pulse"
+        >
+          <i class="ph-fill ph-warning-circle"></i> <span>Late</span>
+        </div>
+        {% endif %}
+        <div
+          class="flex items-center gap-2 bg-bgSecondary px-3 py-1.5 rounded-lg border border-borderColor text-xs text-txtSecondary"
+        >
+          <i class="ph-fill ph-hourglass-medium"></i>
+          <span>{{ task.created_at | time_ago }}</span>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if last_log %}
+    <div class="mt-auto pt-3 pl-2 border-t border-borderColor/50">
+      <div class="flex items-start gap-2.5">
+        <div class="mt-0.5 text-accent opacity-70">
+          <i class="ph-fill ph-arrow-elbow-down-right"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs text-txtSecondary line-clamp-1 italic">
+            <span class="font-medium text-txtPrimary not-italic"
+              >Last activity:</span
+            >
+            {{ last_log.content | highlight(search_query) }}
+          </p>
+          <p class="text-[10px] text-txtSecondary mt-0.5 opacity-70">
+            {{ last_log.created_at | local }}
+          </p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </a>
+  {% endfor %} {% if not tasks %}
+  <div
+    class="text-center py-12 text-txtSecondary border-2 border-dashed border-borderColor rounded-xl"
+  >
+    <i class="ph ph-magnifying-glass text-4xl mb-2 opacity-50"></i>
+    <p class="text-lg font-medium">No tasks found</p>
+    {% if search_query %}
+    <p class="text-sm">No matches found for "<b>{{ search_query }}</b>"</p>
+    <a
+      href="/tasks"
+      class="inline-block mt-4 text-accent hover:underline text-sm"
+      >Clear Search</a
+    >
+    {% else %}
+    <p class="text-sm">Try modifying your filters.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<!-- Pagination -->
+{% if pagination.total_pages > 1 %}
+<div class="flex justify-center items-center gap-4 pb-8">
+  <a
+    href="?page={{ pagination.page - 1 }}{{ params_str|safe }}"
+    class="flex items-center gap-2 px-4 py-2 rounded-lg border border-borderColor bg-bgPrimary text-txtSecondary hover:bg-bgSecondary transition {% if not pagination.has_prev %} pointer-events-none opacity-50 {% endif %}"
+  >
+    <i class="ph-bold ph-caret-left"></i> Previous
+  </a>
+  <span class="text-sm text-txtSecondary"
+    >Page
+    <span class="font-bold text-txtPrimary">{{ pagination.page }}</span> of {{
+    pagination.total_pages }}</span
+  >
+  <a
+    href="?page={{ pagination.page + 1 }}{{ params_str|safe }}"
+    class="flex items-center gap-2 px-4 py-2 rounded-lg border border-borderColor bg-bgPrimary text-txtSecondary hover:bg-bgSecondary transition {% if not pagination.has_next %} pointer-events-none opacity-50 {% endif %}"
+  >
+    Next <i class="ph-bold ph-caret-right"></i>
+  </a>
+</div>
+{% endif %}
+
+<script>
+  function toggleStatus(slug) {
+    const url = new URL(window.location);
+    const params = url.searchParams;
+    const currentSlugs = params.getAll("status");
+    const currentSearch = params.get("search");
+
+    params.delete("status");
+    params.delete("page");
+
+    let exists = false;
+    currentSlugs.forEach((val) => {
+      if (val === slug) exists = true;
+      else params.append("status", val);
+    });
+
+    if (!exists) params.append("status", slug);
+    if (currentSearch) params.set("search", currentSearch);
+
+    window.location = url.toString();
+  }
+
+  function clearFilters() {
+    const url = new URL(window.location);
+    url.searchParams.delete("status");
+    url.searchParams.delete("page");
+    window.location = url.toString();
+  }
+</script>
+{% endblock %}

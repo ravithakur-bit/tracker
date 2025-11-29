@@ -1,0 +1,286 @@
+{% extends "layouts/base.html" %}
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 h-full">
+    
+    <!-- LEFT COLUMN (Main Info + Comments) -->
+    <div class="lg:col-span-2 flex flex-col gap-8">
+        
+        <!-- 1. Main Info Component -->
+        <div class="bg-bgPrimary p-6 rounded-xl border border-borderColor shadow-sm relative overflow-hidden shrink-0">
+            
+            <!-- Header -->
+            <div class="flex flex-col gap-2 mb-4">
+                <div class="flex justify-between items-start">
+                    <div class="flex items-start gap-3 w-full">
+                        <h1 class="text-3xl font-bold text-txtPrimary leading-tight">{{ bug.title }}</h1>
+                        
+                        <!-- Edit Button -->
+                        <button onclick="openEditModal()" class="mt-1.5 text-txtSecondary hover:text-accent transition p-1 rounded hover:bg-bgSecondary shrink-0" title="Edit Details">
+                            <i class="ph-bold ph-pencil-simple text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 flex-wrap">
+                    <!-- Dynamic Status Badge -->
+                    <span class="w-fit px-2.5 py-0.5 rounded text-[10px] font-bold uppercase border tracking-wide
+                        bg-{{ bug.status.color }}-50 text-{{ bug.status.color }}-700 border-{{ bug.status.color }}-200 
+                        dark:bg-{{ bug.status.color }}-900/30 dark:text-{{ bug.status.color }}-300 dark:border-{{ bug.status.color }}-800">
+                        {{ bug.status.name }}
+                    </span>
+
+                    <!-- Overdue Badge -->
+                    {% set days_late = (bug.delivery_date | days_until) %}
+                    {% if not bug.status.is_final and days_late is not none and days_late < 0 %}
+                        <span class="w-fit px-2.5 py-0.5 rounded text-[10px] font-bold uppercase border tracking-wide bg-red-50 text-red-600 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800 animate-pulse">
+                            Late by {{ days_late | abs }} days
+                        </span>
+                    {% endif %}
+
+                    <span class="flex items-center gap-1 bg-bgSecondary px-2 py-0.5 rounded border border-borderColor text-xs text-txtSecondary ml-auto sm:ml-0">
+                        #{{ bug.id }} • Reported {{ bug.reported_at | local }}
+                    </span>
+                </div>
+            </div>
+            
+            <!-- Description (UPDATED for tighter spacing and smaller font) -->
+            <div class="prose dark:prose-invert max-w-none text-txtSecondary text-left border-b border-borderColor pb-3 mb-4 prose-p:my-1">
+                {{ bug.description | markdown | safe }}
+            </div>
+            
+            <!-- Attachments Section -->
+            <div>
+                <h4 class="text-xs font-bold uppercase text-txtSecondary mb-3 tracking-wider flex items-center gap-2">
+                    <i class="ph-bold ph-paperclip"></i> Attachments
+                </h4>
+                
+                <div class="flex flex-wrap gap-3 mb-4">
+                    {% for link in bug.links %}
+                    <a href="{{ link.url }}" target="_blank" class="flex items-center gap-2 bg-bgSecondary hover:bg-accent hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition group border border-borderColor hover:border-accent">
+                        <i class="ph ph-link text-lg"></i> {{ link.name }}
+                    </a>
+                    {% endfor %}
+                    {% if not bug.links %}
+                        <span class="text-sm text-txtSecondary italic">No attachments yet.</span>
+                    {% endif %}
+                </div>
+
+                <details class="group bg-bgSecondary/50 border border-borderColor rounded-lg overflow-hidden">
+                    <summary class="flex items-center gap-2 px-4 py-2 cursor-pointer text-sm font-medium text-accent hover:bg-bgSecondary transition select-none">
+                        <i class="ph-bold ph-plus group-open:rotate-45 transition-transform duration-200"></i>
+                        <span>Add New Link</span>
+                    </summary>
+                    <div class="p-4 border-t border-borderColor bg-bgPrimary">
+                        <form action="/bugs/{{ bug.id }}/attach" method="POST" class="flex flex-col sm:flex-row gap-3">
+                            <input type="text" name="name" placeholder="Link Name (e.g. Figma)" required
+                                class="flex-1 bg-bgSecondary border border-borderColor rounded px-3 py-2 text-sm outline-none focus:border-accent">
+                            <input type="url" name="url" placeholder="https://..." required
+                                class="flex-[2] bg-bgSecondary border border-borderColor rounded px-3 py-2 text-sm outline-none focus:border-accent">
+                            <button type="submit" class="bg-accent text-white px-4 py-2 rounded text-sm font-bold hover:opacity-90">
+                                Add
+                            </button>
+                        </form>
+                    </div>
+                </details>
+            </div>
+        </div>
+
+        <!-- 2. Comment Section -->
+        <div class="flex-1 min-h-0 flex flex-col">
+            <div class="flex items-center gap-2 mb-4 shrink-0">
+                <span class="bg-blue-100 text-blue-600 p-1.5 rounded-lg dark:bg-blue-900/30">
+                    <i class="ph-fill ph-chats text-lg"></i>
+                </span>
+                <h3 class="font-bold text-lg">Discussion</h3>
+            </div>
+
+            <!-- Comment Form (Updated with text-sm) -->
+<!-- Comment Form -->
+            <form action="/bugs/{{ bug.id }}/comment" method="POST" class="flex flex-col gap-2 mb-6 shrink-0 relative group">
+                
+                <div class="relative">
+                    <textarea 
+                        name="content" 
+                        rows="3" 
+                        placeholder="Type a comment or activity log..." 
+                        required
+                        class="w-full bg-bgPrimary border border-borderColor rounded-xl px-4 py-3 outline-none text-txtPrimary placeholder:text-txtSecondary text-sm focus:border-accent focus:ring-1 focus:ring-accent transition block shadow-sm"
+                    ></textarea>
+                    
+                    <!-- Post Button (Absolute positioned inside for compact look, or below) -->
+                    <div class="absolute bottom-2 right-2">
+                        <button type="submit" class="bg-accent text-white px-4 py-1.5 rounded-lg font-bold text-xs hover:opacity-90 transition shadow-sm">
+                            Post
+                        </button>
+                    </div>
+                </div>
+            </form>
+            <!-- INDEPENDENT SCROLL: Activity Log -->
+            <div class="overflow-y-auto max-h-[600px] custom-scrollbar pr-2 pb-2">
+                <div class="relative ml-4 pt-4">
+                    <div class="absolute left-0 top-2 bottom-0 w-0.5 bg-borderColor"></div>
+
+                    {% for item in activity_logs %}
+                    <div class="relative pl-8 pb-6 group">
+                        <div class="absolute left-[-5px] top-0 w-3 h-3 rounded-full border-2 border-bgPrimary bg-blue-500 shadow-sm z-10 group-hover:scale-125 transition"></div>
+                        
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-1.5 -mt-1">
+                            <span class="font-bold text-xs text-txtPrimary">User Comment</span>
+                            <span class="text-[10px] text-txtSecondary">{{ item.created_at | local }}</span>
+                        </div>
+
+                        <!-- Reduced Padding (p-3), text-sm, prose-sm -->
+                        <div class="bg-bgPrimary p-3 rounded-xl border border-borderColor shadow-sm text-txtSecondary text-sm leading-relaxed hover:border-blue-200 transition whitespace-pre-wrap prose prose-sm max-w-none dark:prose-invert">{{ item.content }}</div>
+                    </div>
+                    {% endfor %}
+                    
+                    {% if not activity_logs %}
+                        <p class="text-sm text-txtSecondary italic pl-8">No comments yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT COLUMN (Update Form + History) -->
+    <div class="flex flex-col gap-6 h-[calc(100vh-6rem)] sticky top-6">
+        
+        <!-- 1. Manage Ticket -->
+        <div class="bg-bgPrimary p-6 rounded-xl border border-borderColor shadow-lg shadow-gray-200/50 dark:shadow-none shrink-0 z-20">
+            <h3 class="font-bold mb-5 flex items-center gap-2 pb-4 border-b border-borderColor text-txtPrimary">
+                <i class="ph-fill ph-sliders-horizontal text-accent"></i> Manage Ticket
+            </h3>
+            
+            <form action="/bugs/{{ bug.id }}/update" method="POST" class="space-y-4">
+                <div>
+                    <label class="text-[10px] text-txtSecondary uppercase font-bold mb-1.5 block tracking-wider">Status</label>
+                    <div class="relative">
+                        <select name="status_id" class="appearance-none w-full bg-bgSecondary border border-borderColor rounded-lg px-3 py-2.5 outline-none focus:border-accent transition cursor-pointer text-sm">
+                            {% for s in statuses %}
+                                <option value="{{ s.id }}" {% if s.id == bug.status_id %}selected{% endif %}>{{ s.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <i class="ph-bold ph-caret-down absolute right-3 top-3 text-txtSecondary pointer-events-none"></i>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="text-[10px] text-txtSecondary uppercase font-bold mb-1.5 block tracking-wider">Delivery Date</label>
+                    <input type="date" name="delivery_date" 
+                           value="{{ bug.delivery_date.strftime('%Y-%m-%d') if bug.delivery_date else '' }}"
+                           class="w-full bg-bgSecondary border border-borderColor rounded-lg px-3 py-2.5 outline-none focus:border-accent transition text-sm">
+                </div>
+                
+                <div class="pt-2">
+                    <label class="text-[10px] text-txtSecondary uppercase font-bold mb-1.5 block tracking-wider">
+                        Remark <span class="text-red-400 normal-case font-normal ml-1">* Required for changes</span>
+                    </label>
+                    <textarea name="remark" rows="2" placeholder="Reason for change..." 
+                           class="w-full bg-bgSecondary border border-borderColor rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition "></textarea>
+                </div>
+
+                <button type="submit" class="w-full bg-txtPrimary text-bgPrimary font-bold py-2.5 rounded-lg hover:opacity-90 transition mt-2 text-sm">
+                    Update Ticket
+                </button>
+            </form>
+        </div>
+
+        <!-- 2. System History Log -->
+        <div class="flex-1 flex flex-col min-h-0">
+            <h3 class="font-bold text-xs text-txtSecondary uppercase tracking-wider mb-4 pl-1 flex items-center gap-2 shrink-0">
+                <i class="ph-bold ph-clock-counter-clockwise"></i> History Log
+            </h3>
+            
+            <div class="overflow-y-auto pr-3 custom-scrollbar relative flex-1">
+                <div class="relative ml-4">
+                    <div class="absolute left-0 top-2 bottom-0 w-0.5 bg-borderColor"></div>
+
+                    {% for item in history_logs %}
+                    <div class="relative pl-6 pb-8 group">
+                        <div class="absolute left-[-5px] top-0.5 w-3 h-3 rounded-full border-2 border-bgPrimary bg-orange-400 group-hover:scale-125 transition z-10"></div>
+                        
+                        <div class="text-[10px] text-txtSecondary font-mono mb-1.5">
+                            {{ item.created_at | local }}
+                        </div>
+
+                        <div class="bg-bgPrimary p-3 rounded-lg border border-borderColor text-xs shadow-sm group-hover:border-orange-300 transition relative">
+                            <div class="absolute top-2 -left-1.5 w-3 h-3 bg-bgPrimary border-l border-b border-borderColor transform rotate-45 group-hover:border-orange-300 transition"></div>
+
+                            <div class="font-bold text-txtPrimary mb-1 relative z-10">
+                                {{ item.change_type | replace('_', ' ') }}
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2 text-txtSecondary mb-2 relative z-10">
+                                <span class="line-through opacity-60 decoration-red-400">{{ item.old_value }}</span>
+                                <i class="ph-bold ph-arrow-right text-[10px]"></i>
+                                <span class="text-green-700 bg-green-50 px-1.5 py-0.5 rounded font-mono dark:bg-green-900/30 dark:text-green-300">
+                                    {{ item.new_value }}
+                                </span>
+                            </div>
+                            {% if item.remark %}
+                                <div class="pt-2 border-t border-dashed border-borderColor text-txtSecondary italic relative z-10">
+                                    "{{ item.remark }}"
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- EDIT MODAL -->
+<div id="edit-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center backdrop-blur-sm">
+    <div class="bg-bgPrimary w-full max-w-2xl m-4 rounded-xl border border-borderColor shadow-2xl transform transition-all scale-95 opacity-0 flex flex-col max-h-[90vh]" id="edit-modal-content">
+        <div class="p-6 border-b border-borderColor flex justify-between items-center shrink-0">
+            <h2 class="text-xl font-bold text-txtPrimary">Edit Details</h2>
+            <button onclick="closeEditModal()" class="text-txtSecondary hover:text-red-500 p-2 rounded-lg hover:bg-bgSecondary transition"><i class="ph-bold ph-x text-lg"></i></button>
+        </div>
+        
+        <form action="/bugs/{{ bug.id }}/edit_details" method="POST" class="p-6 flex-1 overflow-y-auto">
+            <div class="mb-4">
+                <label class="block text-sm font-bold mb-2 text-txtSecondary uppercase tracking-wider">Title</label>
+                <input type="text" name="title" value="{{ bug.title }}" required class="w-full bg-bgSecondary border border-borderColor rounded-lg px-4 py-3 outline-none focus:border-accent text-txtPrimary">
+            </div>
+            <div class="mb-6">
+                <label class="block text-sm font-bold mb-2 text-txtSecondary uppercase tracking-wider">Description (Markdown Supported)</label>
+                <textarea name="description" rows="12" class="w-full bg-bgSecondary border border-borderColor rounded-lg px-4 py-3 outline-none focus:border-accent text-txtPrimary  custom-scrollbar font-mono text-sm leading-relaxed">{{ bug.description or '' }}</textarea>
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <button type="button" onclick="closeEditModal()" class="px-5 py-2.5 rounded-lg border border-borderColor hover:bg-bgSecondary text-txtSecondary font-medium transition">Cancel</button>
+                <button type="submit" class="px-6 py-2.5 rounded-lg bg-accent text-white font-bold hover:opacity-90 shadow-lg shadow-blue-500/20 transition">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const modal = document.getElementById('edit-modal');
+    const modalContent = document.getElementById('edit-modal-content');
+
+    function openEditModal() {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        setTimeout(() => {
+            modalContent.classList.remove('scale-95', 'opacity-0');
+            modalContent.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    }
+
+    function closeEditModal() {
+        modalContent.classList.remove('scale-100', 'opacity-100');
+        modalContent.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+        }, 200);
+    }
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeEditModal();
+    });
+</script>
+{% endblock %}

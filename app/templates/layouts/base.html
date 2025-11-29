@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Tracker{% endblock %}</title>
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              bgPrimary: "var(--bg-primary)",
+              bgSecondary: "var(--bg-secondary)",
+              txtPrimary: "var(--text-primary)",
+              txtSecondary: "var(--text-secondary)",
+              accent: "var(--accent)",
+              borderColor: "var(--border)",
+            },
+          },
+        },
+      };
+    </script>
+
+    <!-- Highlight.js CSS (GitHub Dark Dimmed Theme) -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark-dimmed.min.css"
+    />
+
+    <link rel="stylesheet" href="/static/css/main.css" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      body {
+        font-family: "Poppins", sans-serif;
+        font-weight: 400;
+        font-style: normal;
+      }
+      i {
+        transition: all 0.2s ease;
+      }
+
+      /* --- MARKDOWN CODE STYLING --- */
+
+      /* 1. Inline Code (Bubble Style) */
+      .prose :where(code):not(:where([class~="not-prose"] *)) {
+        background-color: rgba(175, 184, 193, 0.2);
+        color: var(--text-primary);
+        font-weight: 500;
+        padding: 0.125rem 0.375rem;
+        border-radius: 0.375rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          monospace;
+      }
+      .prose :where(code):not(:where([class~="not-prose"] *))::before,
+      .prose :where(code):not(:where([class~="not-prose"] *))::after {
+        content: "" !important;
+      }
+
+      /* 2. Block Code (Highlight.js Override) */
+      /* We reset the inline styles so the code block looks like a terminal */
+      .prose pre {
+        background-color: #22272e !important; /* Dark background */
+        border-radius: 0.5rem !important;
+        padding: 1rem !important;
+        margin-top: 0.8em !important;
+        margin-bottom: 0.8em !important;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      }
+
+      /* Reset inner code styles for blocks so syntax highlighting works */
+      .prose pre code {
+        background-color: transparent !important;
+        padding: 0 !important;
+        color: inherit !important;
+        font-weight: normal !important;
+        border-radius: 0 !important;
+      }
+    </style>
+  </head>
+  <body
+    class="flex h-screen overflow-hidden text-txtPrimary transition-colors duration-200"
+  >
+    <!-- Sidebar -->
+    <aside
+      class="w-64 bg-bgPrimary border-r border-borderColor flex flex-col justify-between p-4 z-10 shrink-0"
+    >
+      <div>
+        <div
+          class="mb-8 flex items-center gap-2 text-accent font-bold text-xl px-2"
+        >
+          <i class="ph-fill ph-circles-three-plus text-2xl"></i>
+          <span>Tracker</span>
+        </div>
+
+        <nav class="space-y-1">
+          {% set current_path = request.url.path %}
+
+          <a
+            href="/"
+            class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group {% if current_path == '/' %} bg-accent text-white shadow-md shadow-blue-500/30 {% else %} text-txtSecondary hover:bg-bgSecondary hover:text-txtPrimary {% endif %}"
+          >
+            <i
+              class="text-xl {% if current_path == '/' %}ph-fill text-white{% else %}ph{% endif %} ph-squares-four"
+            ></i>
+            <span class="font-medium">Dashboard</span>
+          </a>
+
+          <a
+            href="/tasks"
+            class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group {% if current_path.startswith('/tasks') %} bg-accent text-white shadow-md shadow-blue-500/30 {% else %} text-txtSecondary hover:bg-bgSecondary hover:text-txtPrimary {% endif %}"
+          >
+            <i
+              class="text-xl {% if current_path.startswith('/tasks') %}ph-fill text-white{% else %}ph{% endif %} ph-check-square"
+            ></i>
+            <span class="font-medium">Tasks</span>
+          </a>
+
+          <a
+            href="/bugs"
+            class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group {% if current_path.startswith('/bugs') %} bg-accent text-white shadow-md shadow-blue-500/30 {% else %} text-txtSecondary hover:bg-bgSecondary hover:text-txtPrimary {% endif %}"
+          >
+            <i
+              class="text-xl {% if current_path.startswith('/bugs') %}ph-fill text-white{% else %}ph{% endif %} ph-bug"
+            ></i>
+            <span class="font-medium">Bugs</span>
+          </a>
+        </nav>
+      </div>
+
+      <button
+        id="theme-toggle"
+        class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-bgSecondary text-txtSecondary hover:text-txtPrimary transition-colors outline-none focus:ring-2 focus:ring-accent/20"
+      >
+        <i class="ph ph-moon text-xl"></i>
+        <span class="font-medium">Theme</span>
+      </button>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto relative bg-bgSecondary/30">
+      <div class="p-8 max-w-7xl mx-auto min-h-full">
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+
+    <!-- Highlight.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="/static/js/main.js"></script>
+  </body>
+</html>
