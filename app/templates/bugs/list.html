@@ -8,23 +8,28 @@
       {% if search_query %} Search results for "<span
         class="font-bold text-accent"
         >{{ search_query }}</span
-      >" {% elif current_status_slugs %} Filtered by
-      <span class="font-bold text-accent"
-        >{{ current_status_slugs|length }}</span
-      >
-      statuses {% else %} Showing
-      <span class="font-bold text-accent">All</span> bugs {% endif %}
+      >" {% elif current_status_slugs or no_date_filter %} Filtered view {% else
+      %} Showing <span class="font-bold text-accent">All</span> bugs {% endif %}
     </p>
   </div>
 
   <div class="flex items-center gap-3 w-full md:w-auto">
+    <!-- Search Form -->
     <form action="/bugs" method="GET" class="relative flex-1 md:w-64">
       <i
         class="ph-bold ph-magnifying-glass absolute left-3 top-2.5 text-txtSecondary"
       ></i>
+
+      <!-- Maintain Status Filters -->
       {% for slug in current_status_slugs %}
       <input type="hidden" name="status" value="{{ slug }}" />
       {% endfor %}
+
+      <!-- Maintain No Date Filter -->
+      {% if no_date_filter %}
+      <input type="hidden" name="no_date" value="true" />
+      {% endif %}
+
       <input
         type="text"
         name="search"
@@ -44,29 +49,43 @@
   </div>
 </div>
 
-<!-- Status Filters -->
+<!-- Filters Bar -->
 <div
   class="flex items-center gap-3 mb-8 overflow-x-auto pb-2 custom-scrollbar flex-wrap"
 >
+  <!-- 'All' Reset Button -->
   <button
     onclick="clearFilters()"
-    class="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition border whitespace-nowrap cursor-pointer {% if not current_status_slugs %} bg-txtPrimary text-bgPrimary border-txtPrimary {% else %} bg-bgPrimary text-txtSecondary border-borderColor {% endif %}"
+    class="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition border whitespace-nowrap cursor-pointer {% if not current_status_slugs and not no_date_filter %} bg-txtPrimary text-bgPrimary border-txtPrimary {% else %} bg-bgPrimary text-txtSecondary border-borderColor hover:border-txtSecondary {% endif %}"
   >
     <span>All</span>
     <span
-      class="px-1.5 py-0.5 rounded-full text-[10px] {% if not current_status_slugs %} bg-bgSecondary text-txtPrimary {% else %} bg-bgSecondary text-txtSecondary {% endif %}"
+      class="px-1.5 py-0.5 rounded-full text-[10px] {% if not current_status_slugs and not no_date_filter %} bg-bgSecondary text-txtPrimary {% else %} bg-bgSecondary text-txtSecondary {% endif %}"
     >
       {{ total_bugs }}
     </span>
   </button>
 
+  <!-- NEW: No Due Date Toggle -->
+  <button
+    onclick="toggleNoDate()"
+    class="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition border whitespace-nowrap cursor-pointer select-none {% if no_date_filter %} bg-orange-500 text-white border-orange-500 shadow-md shadow-orange-500/20 {% else %} bg-bgPrimary text-txtSecondary border-borderColor hover:border-orange-500 hover:text-orange-500 {% endif %}"
+  >
+    <i class="ph-bold ph-calendar-x"></i>
+    <span>No Date</span>
+  </button>
+
+  <!-- Vertical Divider -->
+  <div class="w-px h-6 bg-borderColor shrink-0 mx-1"></div>
+
+  <!-- Status Filters -->
   {% for status in statuses %} {% set is_active = status.slug in
   current_status_slugs %}
   <button
     onclick="toggleStatus('{{ status.slug }}')"
     class="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition border whitespace-nowrap group cursor-pointer select-none {% if is_active %} bg-accent text-white border-accent shadow-md shadow-blue-500/20 {% else %} bg-bgPrimary text-txtSecondary border-borderColor hover:border-accent hover:text-accent {% endif %}"
   >
-    <!-- DYNAMIC COLOR DOT -->
+    <!-- Dynamic Color Dot -->
     <span
       class="w-2 h-2 rounded-full bg-{{ status.color }}-500 {% if is_active %} ring-2 ring-white/50 {% endif %}"
     ></span>
@@ -84,8 +103,10 @@
 <!-- Bug List Grid -->
 <div class="grid grid-cols-1 gap-4 mb-8">
   {% for bug in bugs %} {% set is_final = bug.status.is_final %} {% set
-  days_late = (bug.delivery_date | days_until) %} {% set last_log =
-  bug.activities[0] if bug.activities else None %}
+  days_late = (bug.delivery_date | days_until) %}
+
+  <!-- Latest Activity -->
+  {% set last_log = bug.activities[0] if bug.activities else None %}
 
   <a
     href="/bugs/{{ bug.slug }}"
@@ -101,7 +122,7 @@
     >
       <div class="flex-1">
         <div class="flex items-center gap-3 mb-1">
-          <!-- DYNAMIC STATUS BADGE -->
+          <!-- Status Badge -->
           <span
             class="px-2 py-0.5 rounded text-[10px] font-bold uppercase border 
                         bg-{{ bug.status.color }}-50 text-{{ bug.status.color }}-700 border-{{ bug.status.color }}-200
@@ -110,12 +131,18 @@
             {{ bug.status.name }}
           </span>
 
+          <!-- Highlighted Title -->
           <h3
             class="font-bold text-lg text-txtPrimary group-hover:text-accent transition"
           >
             {{ bug.title | highlight(search_query) }}
           </h3>
         </div>
+
+        <!-- Highlighted Description -->
+        <p class="text-txtSecondary text-sm line-clamp-1 mb-3">
+          {{ bug.description | highlight(search_query) }}
+        </p>
 
         <div class="flex items-center gap-4 text-xs text-txtSecondary">
           <div
@@ -130,7 +157,7 @@
 
           <div class="flex items-center gap-1.5">
             <i class="ph-fill ph-clock"></i>
-            Reported {{ bug.reported_at | local }}
+            Reported {{ bug.reported_at.strftime('%d %b') }}
           </div>
         </div>
       </div>
@@ -139,7 +166,7 @@
       <div class="flex items-center gap-2 shrink-0">
         {% if days_late is not none and days_late < 0 %}
         <div
-          class="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-800 text-xs text-red-600 font-bold animate-pulse"
+          class="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-800 text-xs text-red-600 dark:text-red-400 font-bold animate-pulse"
           title="Overdue"
         >
           <i class="ph-fill ph-warning-circle"></i>
@@ -151,12 +178,14 @@
           class="flex items-center gap-2 bg-bgSecondary px-3 py-1.5 rounded-lg border border-borderColor text-xs text-txtSecondary"
         >
           <i class="ph-fill ph-hourglass-medium"></i>
+          <!-- Time Ago Filter -->
           <span>{{ bug.reported_at | time_ago }}</span>
         </div>
       </div>
       {% endif %}
     </div>
 
+    <!-- Last Activity -->
     {% if last_log %}
     <div class="mt-auto pt-3 pl-2 border-t border-borderColor/50">
       <div class="flex items-start gap-2.5">
@@ -223,31 +252,59 @@
 {% endif %}
 
 <script>
+  // 1. Toggle Status (Preserve No Date & Search)
   function toggleStatus(slug) {
     const url = new URL(window.location);
     const params = url.searchParams;
+
     const currentSlugs = params.getAll("status");
     const currentSearch = params.get("search");
+    const noDate = params.get("no_date");
 
     params.delete("status");
     params.delete("page");
+    params.delete("no_date");
 
     let exists = false;
+
     currentSlugs.forEach((val) => {
       if (val === slug) exists = true;
       else params.append("status", val);
     });
 
     if (!exists) params.append("status", slug);
+
     if (currentSearch) params.set("search", currentSearch);
+    if (noDate === "true") params.set("no_date", "true");
 
     window.location = url.toString();
   }
 
+  // 2. Toggle No Date (Preserve Status & Search)
+  function toggleNoDate() {
+    const url = new URL(window.location);
+    const params = url.searchParams;
+
+    const isSet = params.get("no_date") === "true";
+
+    params.delete("page");
+
+    if (isSet) {
+      params.delete("no_date");
+    } else {
+      params.set("no_date", "true");
+    }
+
+    window.location = url.toString();
+  }
+
+  // 3. Clear Filters (Keep Search only)
   function clearFilters() {
     const url = new URL(window.location);
     url.searchParams.delete("status");
+    url.searchParams.delete("no_date");
     url.searchParams.delete("page");
+    // We keep search active as 'clearing filters' usually implies status/categories
     window.location = url.toString();
   }
 </script>

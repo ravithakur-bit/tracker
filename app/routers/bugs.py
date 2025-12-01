@@ -20,6 +20,7 @@ async def list_bugs(
     request: Request,
     status: List[str] = Query(default=[]),
     search: Optional[str] = Query(None),  # Added Search Param
+    no_date: bool = Query(False),
     page: int = 1,
     limit: int = 10,
     db: Session = Depends(get_db),
@@ -79,6 +80,14 @@ async def list_bugs(
     else:
         total_items = query.count() if search else total_bugs_count
 
+    if no_date:
+        query = query.filter(Bug.delivery_date.is_(None))
+
+    if status or search or no_date:
+        total_items = query.count()
+    else:
+        total_items = total_bugs_count
+
     # 4. Sorting
     now = datetime.now()
     is_overdue = case(
@@ -113,6 +122,7 @@ async def list_bugs(
             "total_bugs": total_bugs_count,
             "current_status_slugs": status,
             "search_query": search,  # Pass query to template
+            "no_date_filter": no_date,
             "params_str": params_str,
             "pagination": {
                 "page": page,
