@@ -4,7 +4,7 @@ Tracker{% endblock %} {% block content %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <div class="space-y-8 pb-4 h-full flex flex-col">
-  <!-- 1. KPI CARDS (Fixed Top) -->
+  <!-- 1. KPI CARDS -->
   <div class="grid grid-cols-1 md:grid-cols-4 gap-4 shrink-0">
     <!-- Pending Tasks -->
     <div
@@ -98,7 +98,7 @@ Tracker{% endblock %} {% block content %}
         </div>
       </div>
 
-      <!-- SCROLLABLE CONTAINER FOR FOCUS ZONE -->
+      <!-- SCROLLABLE CONTAINER -->
       <div
         class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3 min-h-[300px]"
       >
@@ -157,7 +157,7 @@ Tracker{% endblock %} {% block content %}
         </div>
         {% endif %}
 
-        <!-- Charts placed below the list -->
+        <!-- Charts Section -->
         <div class="pt-6">
           <h3
             class="text-lg font-bold mb-4 flex items-center gap-2 sticky top-0 bg-bgSecondary/50 backdrop-blur-sm py-2 z-10"
@@ -165,23 +165,41 @@ Tracker{% endblock %} {% block content %}
             <i class="ph-fill ph-chart-pie-slice text-accent"></i> Status
             Overview
           </h3>
+
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Task Chart -->
             <div
               class="bg-bgPrimary p-4 rounded-xl border border-borderColor shadow-sm"
             >
-              <h5 class="text-sm font-bold text-txtSecondary mb-4 text-center">
-                Task Distribution
-              </h5>
+              <div class="flex justify-between items-center mb-4">
+                <h5 class="text-sm font-bold text-txtSecondary">
+                  Task Distribution
+                </h5>
+                {% set total_tasks = chart_data.tasks.counts | sum %}
+                <span
+                  class="text-xs bg-bgSecondary px-2 py-1 rounded-lg text-txtPrimary font-bold border border-borderColor"
+                  >Total: {{ total_tasks }}</span
+                >
+              </div>
               <div class="h-48 flex justify-center">
                 <canvas id="taskChart"></canvas>
               </div>
             </div>
+
+            <!-- Bug Chart -->
             <div
               class="bg-bgPrimary p-4 rounded-xl border border-borderColor shadow-sm"
             >
-              <h5 class="text-sm font-bold text-txtSecondary mb-4 text-center">
-                Bug Distribution
-              </h5>
+              <div class="flex justify-between items-center mb-4">
+                <h5 class="text-sm font-bold text-txtSecondary">
+                  Bug Distribution
+                </h5>
+                {% set total_bugs = chart_data.bugs.counts | sum %}
+                <span
+                  class="text-xs bg-bgSecondary px-2 py-1 rounded-lg text-txtPrimary font-bold border border-borderColor"
+                  >Total: {{ total_bugs }}</span
+                >
+              </div>
               <div class="h-48 flex justify-center">
                 <canvas id="bugChart"></canvas>
               </div>
@@ -198,11 +216,12 @@ Tracker{% endblock %} {% block content %}
       </h3>
 
       <!-- SCROLLABLE CONTAINER -->
-      <div class="flex-1 overflow-y-auto custom-scrollbar px-2">
-        <div class="relative pl-4 border-l-2 border-borderColor space-y-8">
+      <div class="flex-1 overflow-y-auto custom-scrollbar px-2 pb-2">
+        <!-- Added pt-1 to ensure top dot isn't cut off -->
+        <div class="relative pl-4 border-l-2 border-borderColor space-y-8 pt-1">
           {% for act in activities %}
           <div class="relative">
-            <!-- Dot -->
+            <!-- Dot (Clean Style) -->
             <div
               class="absolute -left-[21px] top-1.5 w-3 h-3 rounded-full border-2 border-bgPrimary {% if act.type == 'Task' %} bg-blue-500 {% else %} bg-purple-500 {% endif %}"
             ></div>
@@ -219,13 +238,14 @@ Tracker{% endblock %} {% block content %}
 
             <a href="{{ act.link }}" class="block group">
               <p
-                class="text-xs font-bold text-txtPrimary group-hover:text-accent transition line-clamp-1"
+                class="text-xs font-bold text-txtPrimary group-hover:text-accent transition line-clamp-1 mb-1"
               >
                 {{ act.parent_title }}
               </p>
-              <!-- REVERTED: Removed whitespace-pre-wrap, restored line-clamp-2 -->
+
+              <!-- CLEAN CONTENT PREVIEW -->
               <p
-                class="text-xs text-txtSecondary mt-1 bg-bgPrimary p-2 rounded border border-borderColor shadow-sm line-clamp-2 group-hover:border-accent/30 transition"
+                class="text-xs text-txtSecondary bg-bgPrimary p-2 rounded border border-borderColor shadow-sm group-hover:border-accent/30 transition line-clamp-2"
               >
                 {{ act.content }}
               </p>
@@ -244,7 +264,6 @@ Tracker{% endblock %} {% block content %}
 
 <!-- Charts Script -->
 <script>
-  // Expanded Color Mapper (Supports all standard Tailwind colors)
   const colors = {
       'slate': '#64748b', 'gray': '#6b7280', 'zinc': '#71717a',
       'neutral': '#737373', 'stone': '#78716c', 'red': '#ef4444',
@@ -260,7 +279,6 @@ Tracker{% endblock %} {% block content %}
       const ctx = document.getElementById(id);
       if(!ctx) return;
 
-      // Map DB color names to Hex, default to gray if missing
       const bgColors = data.colors.map(c => colors[c] || colors['gray']);
 
       new Chart(ctx, {
@@ -277,15 +295,20 @@ Tracker{% endblock %} {% block content %}
           options: {
               responsive: true,
               maintainAspectRatio: false,
+              cutout: '60%',
               plugins: {
                   legend: {
                       position: 'bottom',
                       labels: {
                           usePointStyle: true,
                           font: { size: 10 },
+                          padding: 15,
                           color: getComputedStyle(document.body).getPropertyValue('--text-secondary')
                       }
                   }
+              },
+              layout: {
+                  padding: 0
               }
           }
       });

@@ -19,16 +19,13 @@
       <i
         class="ph-bold ph-magnifying-glass absolute left-3 top-2.5 text-txtSecondary"
       ></i>
-
-      <!-- Maintain Status Filters -->
       {% for slug in current_status_slugs %}
-      <input type="hidden" name="status" value="{{ slug }}" />
-      {% endfor %}
+      <input type="hidden" name="status" value="{{ slug }}" /> {% endfor %} {%
+      if no_date_filter %}
+      <input type="hidden" name="no_date" value="true" /> {% endif %}
 
-      <!-- Maintain No Date Filter -->
-      {% if no_date_filter %}
-      <input type="hidden" name="no_date" value="true" />
-      {% endif %}
+      <!-- Hidden View Input to persist view on Search -->
+      <input type="hidden" name="view" value="{{ current_view }}" />
 
       <input
         type="text"
@@ -44,94 +41,101 @@
       class="bg-accent text-white px-4 py-2 rounded-lg hover:opacity-90 transition shadow-lg shadow-blue-500/20 flex items-center gap-2 whitespace-nowrap"
     >
       <i class="ph-bold ph-plus"></i>
-      <span class="hidden sm:inline">Report Bug</span>
+      <span class="hidden sm:inline">Report</span>
     </a>
   </div>
 </div>
 
 <!-- Filters Bar -->
-<div
-  class="flex items-center gap-3 mb-8 overflow-x-auto pb-2 custom-scrollbar flex-wrap"
->
+<div class="flex items-center gap-2 mb-6 flex-wrap">
   <!-- 'All' Reset Button -->
   <button
     onclick="clearFilters()"
-    class="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition border whitespace-nowrap cursor-pointer {% if not current_status_slugs and not no_date_filter %} bg-txtPrimary text-bgPrimary border-txtPrimary {% else %} bg-bgPrimary text-txtSecondary border-borderColor hover:border-txtSecondary {% endif %}"
+    class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition border whitespace-nowrap cursor-pointer {% if not current_status_slugs and not no_date_filter %} bg-txtPrimary text-bgPrimary border-txtPrimary {% else %} bg-bgPrimary text-txtSecondary border-borderColor hover:border-txtSecondary {% endif %}"
   >
     <span>All</span>
     <span
-      class="px-1.5 py-0.5 rounded-full text-[10px] {% if not current_status_slugs and not no_date_filter %} bg-bgSecondary text-txtPrimary {% else %} bg-bgSecondary text-txtSecondary {% endif %}"
+      class="px-1.5 py-0.5 rounded-full text-[10px] bg-bgSecondary text-txtSecondary"
+      >{{ total_bugs }}</span
     >
-      {{ total_bugs }}
-    </span>
   </button>
 
-  <!-- NEW: No Due Date Toggle -->
+  <!-- No Due Date Toggle -->
   <button
     onclick="toggleNoDate()"
-    class="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition border whitespace-nowrap cursor-pointer select-none {% if no_date_filter %} bg-orange-500 text-white border-orange-500 shadow-md shadow-orange-500/20 {% else %} bg-bgPrimary text-txtSecondary border-borderColor hover:border-orange-500 hover:text-orange-500 {% endif %}"
+    class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition border whitespace-nowrap cursor-pointer select-none {% if no_date_filter %} bg-orange-500 text-white border-orange-500 shadow-md shadow-orange-500/20 {% else %} bg-bgPrimary text-txtSecondary border-borderColor hover:border-orange-500 hover:text-orange-500 {% endif %}"
   >
-    <i class="ph-bold ph-calendar-x"></i>
-    <span>No Date</span>
+    <i class="ph-bold ph-calendar-x"></i> <span>No Date</span>
   </button>
 
-  <!-- Vertical Divider -->
-  <div class="w-px h-6 bg-borderColor shrink-0 mx-1"></div>
+  <div class="w-px h-5 bg-borderColor shrink-0 mx-1"></div>
 
   <!-- Status Filters -->
   {% for status in statuses %} {% set is_active = status.slug in
   current_status_slugs %}
   <button
     onclick="toggleStatus('{{ status.slug }}')"
-    class="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition border whitespace-nowrap group cursor-pointer select-none {% if is_active %} bg-accent text-white border-accent shadow-md shadow-blue-500/20 {% else %} bg-bgPrimary text-txtSecondary border-borderColor hover:border-accent hover:text-accent {% endif %}"
+    class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition border whitespace-nowrap group cursor-pointer select-none {% if is_active %} bg-accent text-white border-accent shadow-md shadow-blue-500/20 {% else %} bg-bgPrimary text-txtSecondary border-borderColor hover:border-accent hover:text-accent {% endif %}"
   >
-    <!-- Dynamic Color Dot -->
     <span
       class="w-2 h-2 rounded-full bg-{{ status.color }}-500 {% if is_active %} ring-2 ring-white/50 {% endif %}"
     ></span>
-
     <span>{{ status.name }}</span>
     <span
       class="px-1.5 py-0.5 rounded-full text-[10px] {% if is_active %} bg-white/20 text-white {% else %} bg-bgSecondary text-txtSecondary {% endif %}"
+      >{{ status.count }}</span
     >
-      {{ status.count }}
-    </span>
   </button>
   {% endfor %}
 </div>
 
-<!-- Bug List Grid -->
+<!-- View Toggle Toolbar -->
+<div class="flex justify-end mb-4">
+  <div
+    class="flex bg-bgPrimary border border-borderColor rounded-lg p-1 shadow-sm"
+  >
+    <button
+      onclick="setView('list')"
+      class="px-3 py-1.5 rounded transition flex items-center gap-2 text-sm font-medium {% if current_view == 'list' %} bg-bgSecondary text-accent {% else %} text-txtSecondary hover:text-txtPrimary {% endif %}"
+      title="List View"
+    >
+      <i class="ph-fill ph-list-dashes text-lg"></i>
+    </button>
+    <button
+      onclick="setView('table')"
+      class="px-3 py-1.5 rounded transition flex items-center gap-2 text-sm font-medium {% if current_view == 'table' %} bg-bgSecondary text-accent {% else %} text-txtSecondary hover:text-txtPrimary {% endif %}"
+      title="Table View"
+    >
+      <i class="ph-fill ph-table text-lg"></i>
+    </button>
+  </div>
+</div>
+
+<!-- ================= VIEW LOGIC ================= -->
+
+{% if current_view == 'list' %}
+<!-- LIST VIEW -->
 <div class="grid grid-cols-1 gap-4 mb-8">
   {% for bug in bugs %} {% set is_final = bug.status.is_final %} {% set
-  days_late = (bug.delivery_date | days_until) %}
-
-  <!-- Latest Activity -->
-  {% set last_log = bug.activities[0] if bug.activities else None %}
+  days_late = (bug.delivery_date | days_until) %} {% set last_log =
+  bug.activities[0] if bug.activities else None %}
 
   <a
     href="/bugs/{{ bug.slug }}"
     class="block bg-bgPrimary border border-borderColor p-5 rounded-xl hover:shadow-lg transition group relative overflow-hidden flex flex-col h-full"
   >
-    <!-- Priority Indicator -->
     <div
       class="absolute left-0 top-0 bottom-0 w-1 {% if is_final %} bg-green-500 {% elif days_late is not none and days_late < 0 %} bg-red-500 {% else %} bg-transparent {% endif %}"
     ></div>
-
     <div
       class="flex flex-col md:flex-row md:justify-between md:items-start gap-4 pl-2 mb-3"
     >
       <div class="flex-1">
         <div class="flex items-center gap-3 mb-1">
-          <!-- Status Badge -->
           <span
-            class="px-2 py-0.5 rounded text-[10px] font-bold uppercase border 
-                        bg-{{ bug.status.color }}-50 text-{{ bug.status.color }}-700 border-{{ bug.status.color }}-200
-                        dark:bg-{{ bug.status.color }}-900/30 dark:text-{{ bug.status.color }}-300 dark:border-{{ bug.status.color }}-800"
+            class="px-2 py-0.5 rounded text-[10px] font-bold uppercase border bg-{{ bug.status.color }}-50 text-{{ bug.status.color }}-700 border-{{ bug.status.color }}-200 dark:bg-{{ bug.status.color }}-900/30 dark:text-{{ bug.status.color }}-300 dark:border-{{ bug.status.color }}-800"
+            >{{ bug.status.name }}</span
           >
-            {{ bug.status.name }}
-          </span>
-
-          <!-- Highlighted Title -->
           <h3
             class="font-bold text-lg text-txtPrimary group-hover:text-accent transition"
           >
@@ -139,29 +143,22 @@
           </h3>
         </div>
 
-        <!-- Highlighted Description -->
-        <p class="text-txtSecondary text-sm line-clamp-1 mb-3">
-          {{ bug.description | highlight(search_query) }}
-        </p>
-
         <div class="flex items-center gap-4 text-xs text-txtSecondary">
           <div
             class="flex items-center gap-1.5 {% if days_late is not none and days_late < 0 and not is_final %} text-red-500 font-bold {% endif %}"
           >
             <i class="ph-fill ph-calendar-blank"></i>
-            <span>
-              {% if bug.delivery_date %} Due: {{ bug.delivery_date.strftime('%d
-              %b %Y') }} {% else %} No Due Date {% endif %}
-            </span>
+            <span
+              >{% if bug.delivery_date %} Due: {{ bug.delivery_date.strftime('%d
+              %b %Y') }} {% else %} No Due Date {% endif %}</span
+            >
           </div>
-
           <div class="flex items-center gap-1.5">
-            <i class="ph-fill ph-clock"></i>
-            Reported {{ bug.reported_at.strftime('%d %b') }}
+            <i class="ph-fill ph-clock"></i> Reported {{
+            bug.reported_at.strftime('%d %b %Y') }}
           </div>
         </div>
       </div>
-
       {% if not is_final %}
       <div class="flex items-center gap-2 shrink-0">
         {% if days_late is not none and days_late < 0 %}
@@ -173,19 +170,15 @@
           <span>Late by {{ days_late | abs }} days</span>
         </div>
         {% endif %}
-
         <div
           class="flex items-center gap-2 bg-bgSecondary px-3 py-1.5 rounded-lg border border-borderColor text-xs text-txtSecondary"
         >
           <i class="ph-fill ph-hourglass-medium"></i>
-          <!-- Time Ago Filter -->
           <span>{{ bug.reported_at | time_ago }}</span>
         </div>
       </div>
       {% endif %}
     </div>
-
-    <!-- Last Activity -->
     {% if last_log %}
     <div class="mt-auto pt-3 pl-2 border-t border-borderColor/50">
       <div class="flex items-start gap-2.5">
@@ -207,25 +200,132 @@
     </div>
     {% endif %}
   </a>
-  {% endfor %} {% if not bugs %}
-  <div
-    class="text-center py-12 text-txtSecondary border-2 border-dashed border-borderColor rounded-xl"
-  >
-    <i class="ph ph-magnifying-glass text-4xl mb-2 opacity-50"></i>
-    <p class="text-lg font-medium">No bugs found</p>
-    {% if search_query %}
-    <p class="text-sm">No matches found for "<b>{{ search_query }}</b>"</p>
-    <a
-      href="/bugs"
-      class="inline-block mt-4 text-accent hover:underline text-sm"
-      >Clear Search</a
-    >
-    {% else %}
-    <p class="text-sm">Try changing the status filter</p>
-    {% endif %}
+  {% endfor %}
+</div>
+
+{% else %}
+<!-- TABLE VIEW -->
+<div
+  class="bg-bgPrimary border border-borderColor rounded-xl overflow-hidden shadow-sm mb-8"
+>
+  <div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse">
+      <thead
+        class="bg-bgSecondary/50 border-b border-borderColor text-xs uppercase text-txtSecondary font-bold"
+      >
+        <tr>
+          <th class="px-6 py-4">Status</th>
+          <th class="px-6 py-4 w-1/3">Title</th>
+          <th class="px-6 py-4">Due Date</th>
+          <th class="px-6 py-4">Reported</th>
+          <th class="px-6 py-4 hidden md:table-cell">Last Activity</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-borderColor">
+        {% for bug in bugs %} {% set is_final = bug.status.is_final %} {% set
+        days_late = (bug.delivery_date | days_until) %} {% set last_log =
+        bug.activities[0] if bug.activities else None %}
+
+        <tr
+          class="hover:bg-bgSecondary/30 transition group cursor-pointer"
+          onclick="window.location='/bugs/{{ bug.slug }}'"
+        >
+          <!-- Status -->
+          <td class="px-6 py-4">
+            <span
+              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border 
+                                bg-{{ bug.status.color }}-50 text-{{ bug.status.color }}-700 border-{{ bug.status.color }}-200 
+                                dark:bg-{{ bug.status.color }}-900/30 dark:text-{{ bug.status.color }}-300 dark:border-{{ bug.status.color }}-800"
+            >
+              <span
+                class="w-1.5 h-1.5 rounded-full bg-{{ bug.status.color }}-500"
+              ></span>
+              {{ bug.status.name }}
+            </span>
+          </td>
+
+          <!-- Title + Desc -->
+          <td class="px-6 py-4">
+            <a
+              href="/bugs/{{ bug.slug }}"
+              class="font-bold text-txtPrimary group-hover:text-accent transition block mb-0.5"
+            >
+              {{ bug.title | highlight(search_query) }}
+            </a>
+          </td>
+
+          <!-- Due Date -->
+          <td class="px-6 py-4 whitespace-nowrap">
+            {% if bug.delivery_date %}
+            <div class="flex flex-col">
+              <span
+                class="text-sm font-medium {% if days_late < 0 and not is_final %} text-red-500 {% endif %}"
+              >
+                {{ bug.delivery_date.strftime('%d %b %Y') }}
+              </span>
+              {% if days_late < 0 and not is_final %}
+              <span class="text-[10px] text-red-500 font-bold"
+                >Late by {{ days_late | abs }} days</span
+              >
+              {% endif %}
+            </div>
+            {% else %}
+            <span class="text-xs text-txtSecondary italic">--</span>
+            {% endif %}
+          </td>
+
+          <!-- Reported -->
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="flex flex-col">
+              <span class="text-sm text-txtPrimary"
+                >{{ bug.reported_at.strftime('%d %b %Y') }}</span
+              >
+              <span class="text-[10px] text-txtSecondary"
+                >{{ bug.reported_at | time_ago }}</span
+              >
+            </div>
+          </td>
+
+          <!-- Last Activity -->
+          <td class="px-6 py-4 hidden md:table-cell w-1/4">
+            {% if last_log %}
+            <p class="text-xs text-txtSecondary line-clamp-1 italic mb-0.5">
+              "{{ last_log.content | highlight(search_query) }}"
+            </p>
+            <p class="text-[10px] text-txtSecondary opacity-60">
+              {{ last_log.created_at | local }}
+            </p>
+            {% else %}
+            <span class="text-[10px] text-txtSecondary opacity-50"
+              >- No activity -</span
+            >
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
+</div>
+{% endif %}
+
+<!-- No Bugs Found -->
+{% if not bugs %}
+<div
+  class="text-center py-12 text-txtSecondary border-2 border-dashed border-borderColor rounded-xl"
+>
+  <i class="ph ph-magnifying-glass text-4xl mb-2 opacity-50"></i>
+  <p class="text-lg font-medium">No bugs found</p>
+  {% if search_query %}
+  <p class="text-sm">No matches found for "<b>{{ search_query }}</b>"</p>
+  <a href="/bugs" class="inline-block mt-4 text-accent hover:underline text-sm"
+    >Clear Search</a
+  >
+  {% else %}
+  <p class="text-sm">Try changing the filters</p>
   {% endif %}
 </div>
+{% endif %}
 
 <!-- Pagination -->
 {% if pagination.total_pages > 1 %}
@@ -236,12 +336,11 @@
   >
     <i class="ph-bold ph-caret-left"></i> Previous
   </a>
-
-  <span class="text-sm text-txtSecondary">
-    Page <span class="font-bold text-txtPrimary">{{ pagination.page }}</span> of
-    {{ pagination.total_pages }}
-  </span>
-
+  <span class="text-sm text-txtSecondary"
+    >Page
+    <span class="font-bold text-txtPrimary">{{ pagination.page }}</span> of {{
+    pagination.total_pages }}</span
+  >
   <a
     href="?page={{ pagination.page + 1 }}{{ params_str|safe }}"
     class="flex items-center gap-2 px-4 py-2 rounded-lg border border-borderColor bg-bgPrimary text-txtSecondary hover:bg-bgSecondary transition {% if not pagination.has_next %} pointer-events-none opacity-50 {% endif %}"
@@ -252,59 +351,83 @@
 {% endif %}
 
 <script>
-  // 1. Toggle Status (Preserve No Date & Search)
+  // --- 1. SET VIEW (With LocalStorage) ---
+  function setView(viewMode) {
+    localStorage.setItem("bugViewMode", viewMode);
+    const url = new URL(window.location);
+    url.searchParams.set("view", viewMode);
+    window.location = url.toString();
+  }
+
+  // --- 2. RESTORE VIEW ON LOAD ---
+  document.addEventListener("DOMContentLoaded", () => {
+    const url = new URL(window.location);
+    const serverView = url.searchParams.get("view");
+    const localView = localStorage.getItem("bugViewMode");
+
+    // If URL has no view param, but storage has one -> Redirect
+    // Default on backend is 'list', so we only redirect if preference is 'table'
+    if (!serverView && localView && localView !== "list") {
+      url.searchParams.set("view", localView);
+      window.location.replace(url.toString());
+    }
+    // If URL has a view, update storage to match (syncing)
+    else if (serverView && serverView !== localView) {
+      localStorage.setItem("bugViewMode", serverView);
+    }
+  });
+
+  // --- 3. FILTER LOGIC (Preserve view) ---
   function toggleStatus(slug) {
     const url = new URL(window.location);
     const params = url.searchParams;
-
     const currentSlugs = params.getAll("status");
     const currentSearch = params.get("search");
     const noDate = params.get("no_date");
+    const currentView = params.get("view"); // Preserve view
 
     params.delete("status");
     params.delete("page");
     params.delete("no_date");
+    params.delete("view");
 
     let exists = false;
-
     currentSlugs.forEach((val) => {
       if (val === slug) exists = true;
       else params.append("status", val);
     });
-
     if (!exists) params.append("status", slug);
 
     if (currentSearch) params.set("search", currentSearch);
     if (noDate === "true") params.set("no_date", "true");
+    if (currentView) params.set("view", currentView); // Re-add view
 
     window.location = url.toString();
   }
 
-  // 2. Toggle No Date (Preserve Status & Search)
   function toggleNoDate() {
     const url = new URL(window.location);
     const params = url.searchParams;
-
     const isSet = params.get("no_date") === "true";
-
     params.delete("page");
 
-    if (isSet) {
-      params.delete("no_date");
-    } else {
-      params.set("no_date", "true");
-    }
+    if (isSet) params.delete("no_date");
+    else params.set("no_date", "true");
 
     window.location = url.toString();
   }
 
-  // 3. Clear Filters (Keep Search only)
   function clearFilters() {
     const url = new URL(window.location);
+    const currentView = url.searchParams.get("view");
+
     url.searchParams.delete("status");
     url.searchParams.delete("no_date");
     url.searchParams.delete("page");
-    // We keep search active as 'clearing filters' usually implies status/categories
+
+    // Ensure view persists on clear
+    if (currentView) url.searchParams.set("view", currentView);
+
     window.location = url.toString();
   }
 </script>

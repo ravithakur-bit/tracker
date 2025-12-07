@@ -21,6 +21,7 @@ async def list_bugs(
     status: List[str] = Query(default=[]),
     search: Optional[str] = Query(None),  # Added Search Param
     no_date: bool = Query(False),
+    view: str = Query("list", enum=["list", "table"]),
     page: int = 1,
     limit: int = 10,
     db: Session = Depends(get_db),
@@ -112,6 +113,9 @@ async def list_bugs(
     params_str = "".join([f"&status={s}" for s in status])
     if search:
         params_str += f"&search={search}"
+    if no_date:
+        params_str += "&no_date=true"
+    params_str += f"&view={view}"
 
     return templates.TemplateResponse(
         "bugs/list.html",
@@ -123,6 +127,7 @@ async def list_bugs(
             "current_status_slugs": status,
             "search_query": search,  # Pass query to template
             "no_date_filter": no_date,
+            "current_view": view,
             "params_str": params_str,
             "pagination": {
                 "page": page,

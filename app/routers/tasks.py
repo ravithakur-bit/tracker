@@ -19,6 +19,7 @@ async def list_tasks(
     request: Request,
     status: List[str] = Query(default=[]),
     search: Optional[str] = Query(None),
+    view: str = Query("list", enum=["list", "table"]),
     page: int = 1,
     limit: int = 10,
     db: Session = Depends(get_db),
@@ -103,9 +104,9 @@ async def list_tasks(
 
     # Helper for URL params
     params_str = "".join([f"&status={s}" for s in status])
-
     if search:
         params_str += f"&search={search}"
+    params_str += f"&view={view}"
 
     return templates.TemplateResponse(
         "tasks/list.html",
@@ -116,6 +117,7 @@ async def list_tasks(
             "total_tasks": total_tasks_count,
             "current_status_slugs": status,
             "search_query": search,
+            "current_view": view,
             "params_str": params_str,
             "pagination": {
                 "page": page,
